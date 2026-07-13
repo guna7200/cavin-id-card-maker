@@ -1,0 +1,6 @@
+{
+  "name": "Corporate ID Card Generator",
+  "description": "Professional multi-region corporate ID card builder with batch processing, CSV import, and instant digital card export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

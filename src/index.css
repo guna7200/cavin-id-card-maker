@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Global Cursor Reset for Clickable Elements */
+button,
+select,
+a,
+label.cursor-pointer,
+input[type="button"],
+input[type="submit"] {
+  cursor: pointer !important;
+}
