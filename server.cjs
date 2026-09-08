@@ -13,9 +13,9 @@ app.use(express.json({ limit: '10mb' })); // support large payloads for base64 b
 // Database connection configuration
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Required for Neon Postgres
-  }
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require') 
+    ? { rejectUnauthorized: false } 
+    : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false)
 });
 
 // Default regions data
