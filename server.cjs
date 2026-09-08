@@ -11,11 +11,14 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); // support large payloads for base64 background images
 
 // Database connection configuration
+const isRenderInternal = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('.render.com') || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@dpg-'));
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require') 
-    ? { rejectUnauthorized: false } 
-    : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false)
+  ssl: isRenderInternal 
+    ? false 
+    : (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require') 
+        ? { rejectUnauthorized: false } 
+        : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false))
 });
 
 // Default regions data
