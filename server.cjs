@@ -11,15 +11,15 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); // support large payloads for base64 background images
 
 // Database connection configuration
-const isRenderInternal = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('.render.com') || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('@dpg-'));
-const pool = new Pool({
+const isRenderInternal = process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('.render.com') || process.env.DATABASE_URL.includes('@dpg-'));
+const pool = process.env.DATABASE_URL ? new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: isRenderInternal 
     ? false 
-    : (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require') 
+    : (process.env.DATABASE_URL.includes('sslmode=require') 
         ? { rejectUnauthorized: false } 
         : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false))
-});
+}) : null;
 
 // Default regions data
 const DEFAULT_REGIONS = [
@@ -99,6 +99,11 @@ let dbConnected = false;
 
 // Initialize Database Tables
 async function initDb() {
+  if (!pool) {
+    dbConnected = false;
+    console.log("ℹ️ No DATABASE_URL set. Running in local memory mode.");
+    return;
+  }
   let client;
   try {
     console.log("Connecting to PostgreSQL database...");
