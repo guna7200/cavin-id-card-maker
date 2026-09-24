@@ -845,7 +845,7 @@ export default function App() {
               <CheckCircle2 className="w-4 h-4" /> Save Details
             </button>
             <button
-              onClick={handleDownloadSingle}
+              onClick={handleDownloadSingleBoth}
               disabled={isGenerating}
               className="flex-[1.5] bg-blue-700 text-white py-2.5 rounded-md font-semibold text-xs hover:bg-blue-800 shadow-lg shadow-blue-200 flex items-center justify-center gap-1 disabled:opacity-70 disabled:cursor-wait"
             >
