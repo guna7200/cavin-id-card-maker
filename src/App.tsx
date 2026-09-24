@@ -1102,43 +1102,6 @@ export default function App() {
                 >
                   Next
                 </button>
-            {isBatchMode ? (
-              <div className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4">
-                <button
-                  onClick={() => {
-                    const idx = employees.findIndex(
-                      (e) => e.id === currentEmployee.id,
-                    );
-                    if (idx > 0) setCurrentEmployee(employees[idx - 1]);
-                  }}
-                  disabled={
-                    employees.findIndex((e) => e.id === currentEmployee.id) ===
-                    0
-                  }
-                  className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <div className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700">
-                  {employees.findIndex((e) => e.id === currentEmployee.id) + 1}{" "}
-                  of {employees.length}
-                </div>
-                <button
-                  onClick={() => {
-                    const idx = employees.findIndex(
-                      (e) => e.id === currentEmployee.id,
-                    );
-                    if (idx < employees.length - 1)
-                      setCurrentEmployee(employees[idx + 1]);
-                  }}
-                  disabled={
-                    employees.findIndex((e) => e.id === currentEmployee.id) ===
-                    employees.length - 1
-                  }
-                  className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 disabled:opacity-50"
-                >
-                  Next
-                </button>
                 <button
                   onClick={() => generateBulkZip("both")}
                   disabled={isGenerating}
