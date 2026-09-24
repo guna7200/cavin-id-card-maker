@@ -321,19 +321,21 @@ export default function App() {
     saveAs(blob, "sample_employees.csv");
   };
 
-  const handleDownloadSingle = async (format: "png" | "pdf" = "png") => {
+  const handleDownloadSingleBoth = async () => {
     if (!cardRef.current) return;
     setIsGenerating(true);
 
     try {
       const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
-      if (format === "png") {
-        const link = document.createElement("a");
-        link.download = `${currentEmployee.name || "ID"}_${currentRegion.name}.png`;
-        link.href = dataUrl;
-        link.click();
-      } else {
-        // PDF Export (Standard portrait card format 54mm x 85.6mm)
+      
+      // 1. Download PNG Image
+      const link = document.createElement("a");
+      link.download = `${currentEmployee.name || "ID"}_${currentRegion.name}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      // 2. Download PDF Document (Standard portrait card format 54mm x 85.6mm)
+      setTimeout(() => {
         const pdf = new jsPDF({
           orientation: "portrait",
           unit: "mm",
@@ -341,7 +343,8 @@ export default function App() {
         });
         pdf.addImage(dataUrl, "PNG", 0, 0, 54, 85.6);
         pdf.save(`${currentEmployee.name || "ID"}_${currentRegion.name}.pdf`);
-      }
+      }, 300);
+
       logCreation(currentEmployee.unitId, 1);
     } catch (err) {
       console.error("Error generating card:", err);
@@ -1099,46 +1102,67 @@ export default function App() {
                 >
                   Next
                 </button>
+            {isBatchMode ? (
+              <div className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4">
                 <button
-                  onClick={() => generateBulkZip("png")}
-                  disabled={isGenerating}
-                  className="px-5 py-3 bg-slate-800 rounded-lg shadow-lg border border-slate-900 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-slate-900 transition-colors"
+                  onClick={() => {
+                    const idx = employees.findIndex(
+                      (e) => e.id === currentEmployee.id,
+                    );
+                    if (idx > 0) setCurrentEmployee(employees[idx - 1]);
+                  }}
+                  disabled={
+                    employees.findIndex((e) => e.id === currentEmployee.id) ===
+                    0
+                  }
+                  className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" />{" "}
-                  {isGenerating ? "Exporting..." : "Export All (PNG ZIP)"}
+                  Prev
                 </button>
+                <div className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700">
+                  {employees.findIndex((e) => e.id === currentEmployee.id) + 1}{" "}
+                  of {employees.length}
+                </div>
                 <button
-                  onClick={() => generateBulkZip("pdf")}
-                  disabled={isGenerating}
-                  className="px-5 py-3 bg-red-600 rounded-lg shadow-lg border border-red-700 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-red-700 transition-colors"
+                  onClick={() => {
+                    const idx = employees.findIndex(
+                      (e) => e.id === currentEmployee.id,
+                    );
+                    if (idx < employees.length - 1)
+                      setCurrentEmployee(employees[idx + 1]);
+                  }}
+                  disabled={
+                    employees.findIndex((e) => e.id === currentEmployee.id) ===
+                    employees.length - 1
+                  }
+                  className="px-4 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" />{" "}
-                  {isGenerating ? "Exporting..." : "Export All (PDF ZIP)"}
+                  Next
                 </button>
                 <button
                   onClick={() => generateBulkZip("both")}
                   disabled={isGenerating}
-                  className="px-5 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-blue-800 transition-colors"
+                  className="px-6 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75"
                 >
                   <Download className="w-4 h-4" />{" "}
-                  {isGenerating ? "Exporting..." : "Export All (PNG + PDF ZIP)"}
+                  {isGenerating ? "Generating ZIP..." : "Export All (ZIP)"}
                 </button>
               </div>
             ) : (
               <div className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4">
                 <button
-                  onClick={() => handleDownloadSingle("png")}
+                  onClick={handleDownloadSingleBoth}
                   disabled={isGenerating}
                   className="px-6 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors disabled:opacity-70"
                 >
-                  <Download className="w-4 h-4" /> Download PNG
+                  <Download className="w-4 h-4" /> Download Digital
                 </button>
-                <button
-                  onClick={() => handleDownloadSingle("pdf")}
+                <button 
+                  onClick={() => generateBulkZip("both")}
                   disabled={isGenerating}
-                  className="px-6 py-3 bg-red-600 rounded-lg shadow-lg border border-red-700 text-sm font-bold text-white flex items-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-70"
+                  className="px-6 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 hover:bg-blue-800 transition-colors disabled:opacity-70"
                 >
-                  <Download className="w-4 h-4" /> Download PDF
+                  <Users className="w-4 h-4" /> Print Bulk Orders
                 </button>
               </div>
             )}
