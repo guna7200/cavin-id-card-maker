@@ -16,6 +16,7 @@ import {
 import { Login } from "./components/Login";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { Employee, Region } from "./types";
+import { jsPDF } from "jspdf";
 import cavinKareLogo from "../assets/images/CavinKare-logo-z3dMoof1.png";
 import defaultBgImage from "../assets/images/id-card-bg-1.png";
 
@@ -320,62 +321,77 @@ export default function App() {
     saveAs(blob, "sample_employees.csv");
   };
 
-  const handleDownloadSingle = async () => {
+  const handleDownloadSingle = async (format: "png" | "pdf" = "png") => {
     if (!cardRef.current) return;
     setIsGenerating(true);
 
     try {
       const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
-      const link = document.createElement("a");
-      link.download = `${currentEmployee.name || "ID"}_${currentRegion.name}.png`;
-      link.href = dataUrl;
-      link.click();
+      if (format === "png") {
+        const link = document.createElement("a");
+        link.download = `${currentEmployee.name || "ID"}_${currentRegion.name}.png`;
+        link.href = dataUrl;
+        link.click();
+      } else {
+        // PDF Export (Standard portrait card format 54mm x 85.6mm)
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: [54, 85.6],
+        });
+        pdf.addImage(dataUrl, "PNG", 0, 0, 54, 85.6);
+        pdf.save(`${currentEmployee.name || "ID"}_${currentRegion.name}.pdf`);
+      }
       logCreation(currentEmployee.unitId, 1);
     } catch (err) {
-      console.error("Error generating card image:", err);
+      console.error("Error generating card:", err);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const generateBulkZip = async () => {
+  const generateBulkZip = async (format: "png" | "pdf" | "both" = "both") => {
     if (employees.length === 0 || !cardRef.current) return;
     setIsGenerating(true);
 
     try {
       const zip = new JSZip();
-      const folder = zip.folder("ID_Cards");
+      const folderPNG = (format === "png" || format === "both") ? zip.folder("PNG_Cards") : null;
+      const folderPDF = (format === "pdf" || format === "both") ? zip.folder("PDF_Cards") : null;
 
-      // Save current employee to restore later
       const originalEmployee = currentEmployee;
 
       for (let i = 0; i < employees.length; i++) {
         const emp = employees[i];
-
-        // 1. Update state to render this employee
         setCurrentEmployee(emp);
-
-        // 2. Wait for React to render and images to load
         await new Promise((resolve) => setTimeout(resolve, 150));
 
-        // 3. Generate PNG
         const dataUrl = await toPng(cardRef.current, { pixelRatio: 3 });
         const base64Data = dataUrl.split(",")[1];
-
-        // 4. Add to ZIP
         const region = regions.find((r) => r.id === emp.unitId) || regions[0];
-        const fileName = `${emp.name || "ID"}_${region.name}.png`;
-        folder?.file(fileName, base64Data, { base64: true });
+        const fileNameBase = `${emp.name || "ID"}_${region.name}`;
+
+        if (folderPNG) {
+          folderPNG.file(`${fileNameBase}.png`, base64Data, { base64: true });
+        }
+
+        if (folderPDF) {
+          const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: [54, 85.6],
+          });
+          pdf.addImage(dataUrl, "PNG", 0, 0, 54, 85.6);
+          const pdfArrayBuffer = pdf.output("arraybuffer");
+          folderPDF.file(`${fileNameBase}.pdf`, pdfArrayBuffer);
+        }
       }
 
-      // Restore original employee
       setCurrentEmployee(originalEmployee);
 
-      // Generate and download ZIP
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, "Bulk_ID_Cards.zip");
+      saveAs(content, `Bulk_ID_Cards_${format.toUpperCase()}.zip`);
 
-      // Log bulk creations
       const counts: Record<string, number> = {};
       employees.forEach((emp) => {
         counts[emp.unitId] = (counts[emp.unitId] || 0) + 1;
@@ -1084,24 +1100,45 @@ export default function App() {
                   Next
                 </button>
                 <button
-                  onClick={generateBulkZip}
+                  onClick={() => generateBulkZip("png")}
                   disabled={isGenerating}
-                  className="px-6 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75"
+                  className="px-5 py-3 bg-slate-800 rounded-lg shadow-lg border border-slate-900 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-slate-900 transition-colors"
                 >
                   <Download className="w-4 h-4" />{" "}
-                  {isGenerating ? "Generating ZIP..." : "Export All (ZIP)"}
+                  {isGenerating ? "Exporting..." : "Export All (PNG ZIP)"}
+                </button>
+                <button
+                  onClick={() => generateBulkZip("pdf")}
+                  disabled={isGenerating}
+                  className="px-5 py-3 bg-red-600 rounded-lg shadow-lg border border-red-700 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-red-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />{" "}
+                  {isGenerating ? "Exporting..." : "Export All (PDF ZIP)"}
+                </button>
+                <button
+                  onClick={() => generateBulkZip("both")}
+                  disabled={isGenerating}
+                  className="px-5 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 disabled:opacity-75 hover:bg-blue-800 transition-colors"
+                >
+                  <Download className="w-4 h-4" />{" "}
+                  {isGenerating ? "Exporting..." : "Export All (PNG + PDF ZIP)"}
                 </button>
               </div>
             ) : (
               <div className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4">
                 <button
-                  onClick={handleDownloadSingle}
-                  className="px-6 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                  onClick={() => handleDownloadSingle("png")}
+                  disabled={isGenerating}
+                  className="px-6 py-3 bg-white rounded-lg shadow-sm border border-slate-300 text-sm font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors disabled:opacity-70"
                 >
-                  <Download className="w-4 h-4" /> Download Digital
+                  <Download className="w-4 h-4" /> Download PNG
                 </button>
-                <button className="px-6 py-3 bg-blue-700 rounded-lg shadow-lg border border-blue-800 text-sm font-bold text-white flex items-center gap-2 hover:bg-blue-800 transition-colors">
-                  <Users className="w-4 h-4" /> Print Bulk Orders
+                <button
+                  onClick={() => handleDownloadSingle("pdf")}
+                  disabled={isGenerating}
+                  className="px-6 py-3 bg-red-600 rounded-lg shadow-lg border border-red-700 text-sm font-bold text-white flex items-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-70"
+                >
+                  <Download className="w-4 h-4" /> Download PDF
                 </button>
               </div>
             )}
